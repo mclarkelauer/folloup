@@ -131,15 +131,36 @@ export interface ModuleRoutes {
   reset?: string;
 }
 
-export interface GeminiModuleSettings {
+export type LlmProviderId = 'muse' | 'gemini';
+
+export interface LlmProviderKeyState {
+  display_name?: string;
   has_key?: boolean;
   last4?: string;
+  api_key_source?: string;
+  model_name?: string;
+  transcription_model_name?: string;
 }
 
-export interface OpenAiModuleSettings {
+export interface LlmModuleSettings {
+  provider?: LlmProviderId | string;
+  provider_display_name?: string;
+  configured?: boolean;
   has_key?: boolean;
   last4?: string;
-  resumption_available?: boolean;
+  model_name?: string;
+  transcription_model_name?: string;
+  providers?: Partial<Record<LlmProviderId, LlmProviderKeyState>>;
+}
+
+export interface LlmRuntimeStatus {
+  ready?: boolean;
+  authenticated?: boolean;
+  auth_checked?: boolean;
+  request_in_flight?: boolean;
+  last_status_message?: string;
+  last_error_code?: string;
+  last_error_message?: string;
 }
 
 export interface XiaozhiModuleSettings {
@@ -184,16 +205,11 @@ export interface TalkingClockModuleResponse {
   settings?: TalkingClockModuleSettings;
 }
 
-export interface GeminiModuleResponse {
+export interface LlmModuleResponse {
   success: boolean;
   message?: string;
-  settings?: GeminiModuleSettings;
-}
-
-export interface OpenAiModuleResponse {
-  success: boolean;
-  message?: string;
-  settings?: OpenAiModuleSettings;
+  settings?: LlmModuleSettings;
+  runtime?: LlmRuntimeStatus;
 }
 
 export interface XiaozhiModuleResponse {

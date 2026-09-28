@@ -1,12 +1,12 @@
 # Followup Product Introduction
 
-Followup is a place to capture your thoughts — whether it's an idea, a to-do, or just a note. Record what's on your mind at that light-bulb moment, before it slips away, and Followup helps you organize it afterward. With Gemini, your recordings are transcribed and summarized automatically. Everything is stored on your SD card.
+Followup is a place to capture your thoughts — whether it's an idea, a to-do, or just a note. Record what's on your mind at that light-bulb moment, before it slips away, and Followup helps you organize it afterward. With Muse (Meta's models) or Gemini, your recordings are transcribed and summarized automatically. Everything is stored on your SD card.
 
 It runs on the [Waveshare ESP32-S3-ePaper-3.97](https://docs.waveshare.com/ESP32-S3-ePaper-3.97), so your thoughts live on a quiet, always-on screen you can place anywhere — a constant, low-interruption reminder instead of one more notification buried in your phone.
 
 ## One-Sentence Positioning
 
-**Followup is a voice-first thought-capture companion on always-on ePaper: record ideas, to-dos, and notes in the moment, let Gemini transcribe and summarize them, and keep the ones that matter in front of you as stickies.**
+**Followup is a voice-first thought-capture companion on always-on ePaper: record ideas, to-dos, and notes in the moment, let Muse or Gemini transcribe and summarize them, and keep the ones that matter in front of you as stickies.**
 
 ## What It Is Suitable For
 
@@ -22,11 +22,16 @@ It runs on the [Waveshare ESP32-S3-ePaper-3.97](https://docs.waveshare.com/ESP32
 
 Press record and speak. Every capture starts as a voice recording, tagged as an **Idea**, a **To-do**, or a **Note**, so you can get the thought down the instant it arrives without stopping to type.
 
-### 2. Gemini Transcription and Summarization
+### 2. Muse or Gemini Transcription and Summarization
 
-Once a recording is saved, Gemini transcribes the audio and summarizes it — turning a rambling voice memo into readable text and a concise summary you can scan at a glance.
+Once a recording is saved, the AI provider transcribes the audio and summarizes it — turning a rambling voice memo into readable text and a concise summary you can scan at a glance.
 
-A Gemini API key from [Google AI Studio](https://aistudio.google.com/) is required. You can get started on the free tier, subject to Gemini's free-tier limits, or use a paid account to transcribe without those limits.
+Two providers are supported, and you pick one from the setup portal:
+
+- **Muse (default)** uses Meta's Model API: Muse Voice Transcribe for speech-to-text and Muse Spark for summaries. One API key from the [Meta developer console](https://dev.meta.ai/) covers both.
+- **Gemini** uses Google's Generative Language API for both jobs, with an API key from [Google AI Studio](https://aistudio.google.com/).
+
+Each provider keeps its own stored key, so switching between them never loses a key.
 
 ### 3. Everything Stored on Your SD Card
 
@@ -53,7 +58,7 @@ Pin your follow-ups to the ePaper display as sticky notes. Because the screen is
 | Note | Keep a quick thought or reminder, transcribed and summarized |
 | Follow-up | Flag the items that matter so they stay top of mind |
 | Stickies | Display your active follow-ups on the ePaper as always-on reminders |
-| Summaries | Let Gemini condense long recordings into a glanceable summary |
+| Summaries | Let Muse or Gemini condense long recordings into a glanceable summary |
 
 ## Brief Specifications
 
@@ -72,7 +77,7 @@ Followup runs on the [Waveshare ESP32-S3-ePaper-3.97](https://docs.waveshare.com
 | Sensors | QMI8658 6-axis IMU, PCF85063 real-time clock |
 | Power | AXP2101 PMIC, 3.7V lithium battery (MX1.25 connector), USB-C charging |
 | Storage | microSD card (recordings, transcripts, summaries) |
-| AI | Gemini (cloud) transcription and summarization, over Wi-Fi |
+| AI | Muse (Meta Model API) or Gemini, cloud transcription and summarization over Wi-Fi, selectable from the setup portal |
 
 The board also carries an SHTC3 temperature/humidity sensor on the shared I2C bus. Followup does not currently read it.
 
@@ -117,13 +122,13 @@ Flash the resulting `build/` output from the host with `esptool`, or run the sam
 
 ### Configuration
 
-`sdkconfig.defaults` carries the board settings (16 MB QIO flash, 8 MB octal PSRAM, OTA partition table from `partitions.csv`, TinyUSB mass storage). `sdkconfig` itself is untracked because `idf.py menuconfig` writes secrets such as the Gemini API key into it. Wi-Fi credentials, the Gemini key, and the timezone are normally set at runtime from the setup portal (see `webserver/README.md`), which the device serves while in access-point mode.
+`sdkconfig.defaults` carries the board settings (16 MB QIO flash, 8 MB octal PSRAM, OTA partition table from `partitions.csv`, TinyUSB mass storage). `sdkconfig` itself is untracked because `idf.py menuconfig` writes secrets such as provider API keys into it. `CONFIG_FOLLOWUP_LLM_PROVIDER` picks the default provider (`muse` or `gemini`) and `CONFIG_FOLLOWUP_MUSE_API_KEY` / `CONFIG_FOLLOWUP_GEMINI_API_KEY` can bake in test keys. Wi-Fi credentials, the provider choice, its API key, and the timezone are normally set at runtime from the setup portal (see `webserver/README.md`), which the device serves while in access-point mode.
 
 To enter download mode manually, hold **BOOT** while pressing **RESET**, or simply let `idf.py flash` use the USB-Serial-JTAG auto-reset.
 
 ## Product Value Summary
 
-The value of Followup is a quiet, always-visible place to catch your thoughts and keep the important ones in front of you. Instead of losing an idea to a forgotten note app or burying a task in a notification stream, you speak it in the moment, let Gemini turn it into clean text and a summary, and keep everything private on your SD card.
+The value of Followup is a quiet, always-visible place to catch your thoughts and keep the important ones in front of you. Instead of losing an idea to a forgotten note app or burying a task in a notification stream, you speak it in the moment, let Muse or Gemini turn it into clean text and a summary, and keep everything private on your SD card.
 
 Ideas get a vibe check so you only carry forward what still matters. Tasks and notes become follow-ups so you stay on track. And the ones you care about most sit on the ePaper as stickies — a steady, low-interruption reminder of what's next.
 

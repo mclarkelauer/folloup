@@ -26,11 +26,12 @@ export interface PortalDom {
   passwordInput: ValidatableField;
   scanBtn: HTMLButtonElement;
   connectBtn: HTMLButtonElement;
-  // Gemini API key
-  geminiCard: CardField;
-  geminiApiKeyInput: ValidatableField & { readOnly: boolean };
-  geminiClearBtn: HTMLButtonElement;
-  geminiSaveBtn: HTMLButtonElement;
+  // AI provider + API key
+  llmCard: CardField;
+  llmProviderSelect: ValidatableField;
+  llmApiKeyInput: ValidatableField & { readOnly: boolean };
+  llmClearBtn: HTMLButtonElement;
+  llmSaveBtn: HTMLButtonElement;
   // Time / timezone
   timezoneLocationCard: CardField;
   timezoneSelect: ValidatableField;
@@ -53,12 +54,13 @@ export function createPortalDom(): PortalDom {
     scanBtn: getRequiredElement<HTMLButtonElement>('scanBtn'),
     connectBtn: getRequiredElement<HTMLButtonElement>('connectBtn'),
 
-    geminiCard: getRequiredElement<CardField>('geminiCard'),
-    geminiApiKeyInput: getRequiredElement<ValidatableField & { readOnly: boolean }>(
-      'geminiApiKeyInput'
+    llmCard: getRequiredElement<CardField>('llmCard'),
+    llmProviderSelect: getRequiredElement<ValidatableField>('llmProviderSelect'),
+    llmApiKeyInput: getRequiredElement<ValidatableField & { readOnly: boolean }>(
+      'llmApiKeyInput'
     ),
-    geminiClearBtn: getRequiredElement<HTMLButtonElement>('geminiClearBtn'),
-    geminiSaveBtn: getRequiredElement<HTMLButtonElement>('geminiSaveBtn'),
+    llmClearBtn: getRequiredElement<HTMLButtonElement>('llmClearBtn'),
+    llmSaveBtn: getRequiredElement<HTMLButtonElement>('llmSaveBtn'),
 
     timezoneLocationCard: getRequiredElement<CardField>('timezoneLocationCard'),
     timezoneSelect: getRequiredElement<ValidatableField>('timezoneSelect'),

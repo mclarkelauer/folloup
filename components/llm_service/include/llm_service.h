@@ -1,6 +1,8 @@
-#ifndef GEMINI_SERVICE_H_
-#define GEMINI_SERVICE_H_
+#ifndef LLM_SERVICE_H_
+#define LLM_SERVICE_H_
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
@@ -11,7 +13,16 @@ namespace recording_service {
 class RecordedClip;
 }
 
-namespace gemini_service {
+// Provider-agnostic AI service. One active provider (Muse via the Meta Model API, or Gemini)
+// handles speech-to-text, text generation, and optional token counting. Every provider keeps its
+// own API key, so switching providers never discards a stored key.
+namespace llm_service {
+
+enum class Provider : uint8_t {
+    kGemini = 0,
+    kMuse = 1,
+};
+constexpr size_t kProviderCount = 2;
 
 enum class ApiKeySource : uint8_t {
     kNone = 0,
@@ -19,13 +30,28 @@ enum class ApiKeySource : uint8_t {
     kNvs,
 };
 
+// Key + model state for one provider, whether or not it is the active one.
+struct ProviderKeyState {
+    Provider provider = Provider::kGemini;
+    bool has_key = false;  // a stored or built-in key is present
+    bool has_stored_api_key = false;
+    bool has_sdkconfig_api_key = false;
+    ApiKeySource api_key_source = ApiKeySource::kNone;
+    std::string api_key_last4;
+    std::string model_name;                // text / summary model
+    std::string transcription_model_name;  // speech-to-text model
+};
+
 struct SettingsSnapshot {
-    bool configured = false;
+    Provider provider = Provider::kMuse;  // active provider
+    bool configured = false;              // the active provider has a key
     bool has_stored_api_key = false;
     bool has_sdkconfig_api_key = false;
     ApiKeySource api_key_source = ApiKeySource::kNone;
     std::string api_key_last4;
     std::string model_name;
+    std::string transcription_model_name;
+    std::array<ProviderKeyState, kProviderCount> providers = {};
 };
 
 struct RuntimeSnapshot {
@@ -54,8 +80,12 @@ struct Event {
 };
 
 struct SettingsPatch {
-    bool has_api_key = false;
+    bool has_provider = false;  // switch the active provider
+    Provider provider = Provider::kMuse;
+    bool has_api_key = false;  // store a key
     std::string api_key;
+    bool has_api_key_provider = false;  // which provider the key belongs to (default: active)
+    Provider api_key_provider = Provider::kMuse;
 };
 
 struct Result {
@@ -67,7 +97,7 @@ struct Result {
     std::string message;
 };
 
-// Result of a synchronous text-generation (generateContent) call.
+// Result of a synchronous text-generation call.
 struct TextResult {
     bool success = false;
     int http_status = 0;
@@ -76,7 +106,8 @@ struct TextResult {
     std::string error_message = {};
 };
 
-// Result of a synchronous token-count (countTokens) call.
+// Result of a synchronous token-count call. Providers without a token-count endpoint return
+// success=false with error_code "unsupported"; callers fall back to a local estimate.
 struct TokenCountResult {
     bool success = false;
     int http_status = 0;
@@ -85,7 +116,7 @@ struct TokenCountResult {
     std::string error_message = {};
 };
 
-// Result of a synchronous audio transcription (resumable upload + generateContent) call.
+// Result of a synchronous audio transcription call.
 struct TranscriptionResult {
     bool success = false;
     int http_status = 0;
@@ -106,13 +137,17 @@ void SetEventHandler(EventHandler handler, void* context);
 Snapshot GetSnapshot();
 
 Result ApplySettingsPatch(const SettingsPatch& patch);
-Result ClearStoredApiKey();
+Result ClearStoredApiKey();  // active provider
+Result ClearStoredApiKeyFor(Provider provider);
 
 bool HasApiKey();
+Provider GetActiveProvider();
 std::string GetEffectiveApiKey();
 std::string GetEffectiveModelName();
-// Synchronous Gemini calls (block on HTTP; run them from a worker task, never a UI/input
-// task). They use the effective API key + model and return the parsed result or an error.
+std::string GetProviderDisplayName();  // active provider, e.g. "Muse"
+
+// Synchronous provider calls (block on HTTP; run them from a worker task, never a UI/input
+// task). They use the active provider's key + model and return the parsed result or an error.
 TextResult GenerateText(const std::string& prompt);
 TokenCountResult CountTokens(const std::string& prompt);
 TranscriptionResult Transcribe(const recording_service::RecordedClip& clip);
@@ -121,7 +156,12 @@ void SetNetworkState(bool connected, bool access_point_mode);
 void RegisterPortalRoutes(httpd_handle_t server);
 
 const char* ApiKeySourceName(ApiKeySource source);
+const char* ProviderId(Provider provider);           // "gemini" / "muse"
+const char* ProviderDisplayName(Provider provider);  // "Gemini" / "Muse"
+bool ParseProviderId(const std::string& id, Provider* out);
+// True for the rate-limit / quota error codes any provider can return.
+bool IsQuotaErrorCode(const std::string& error_code);
 
-}  // namespace gemini_service
+}  // namespace llm_service
 
-#endif  // GEMINI_SERVICE_H_
+#endif  // LLM_SERVICE_H_

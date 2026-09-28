@@ -1,9 +1,9 @@
 import type { PortalDom } from './dom';
 
 interface PortalUiStateControllers {
-  geminiController: {
-    getGeminiHasKey: () => boolean;
-    isGeminiBusy: () => boolean;
+  llmController: {
+    hasKey: () => boolean;
+    isBusy: () => boolean;
   };
   timeController: {
     isClockBusy: () => boolean;
@@ -75,14 +75,15 @@ export function updatePortalUiState(deps: UpdatePortalUiStateDeps) {
   dom.timezoneLocationClearBtn.disabled =
     timeConfigBusy || dom.timezoneSelect.value.trim().length === 0;
 
-  // --- Gemini API key (always available on Followup) ---
-  const geminiBusy = controllers.geminiController.isGeminiBusy();
-  const geminiHasKey = controllers.geminiController.getGeminiHasKey();
-  dom.geminiApiKeyInput.readOnly = geminiHasKey || geminiBusy;
-  dom.geminiApiKeyInput.disabled = geminiBusy;
-  dom.geminiSaveBtn.disabled =
-    geminiBusy || geminiHasKey || dom.geminiApiKeyInput.value.trim().length === 0;
-  dom.geminiSaveBtn.hidden = geminiHasKey;
-  dom.geminiClearBtn.disabled = geminiBusy || !geminiHasKey;
-  dom.geminiClearBtn.hidden = !geminiHasKey;
+  // --- AI provider + API key (always available on Followup) ---
+  const llmBusy = controllers.llmController.isBusy();
+  const llmHasKey = controllers.llmController.hasKey();
+  dom.llmProviderSelect.disabled = llmBusy;
+  dom.llmApiKeyInput.readOnly = llmHasKey || llmBusy;
+  dom.llmApiKeyInput.disabled = llmBusy;
+  dom.llmSaveBtn.disabled =
+    llmBusy || llmHasKey || dom.llmApiKeyInput.value.trim().length === 0;
+  dom.llmSaveBtn.hidden = llmHasKey;
+  dom.llmClearBtn.disabled = llmBusy || !llmHasKey;
+  dom.llmClearBtn.hidden = !llmHasKey;
 }

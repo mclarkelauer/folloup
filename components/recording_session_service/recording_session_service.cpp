@@ -11,7 +11,7 @@
 #include "followup_task_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "gemini_service.h"
+#include "llm_service.h"
 #include "playback_service.h"
 #include "storage_service.h"
 #include "system_sound_service.h"
@@ -452,7 +452,7 @@ bool BeginArchivedTranscription(const std::string& recording_id)
         return true;
     }
 
-    // Couldn't start (e.g. Gemini not ready): surface the transcription error as a failure.
+    // Couldn't start (e.g. the AI provider not ready): surface the transcription error as a failure.
     const transcription_service::Snapshot ts = transcription_service::GetSnapshot();
     std::lock_guard<std::mutex> lock(s_mutex);
     s_snapshot.phase = Phase::kFailed;
@@ -679,11 +679,11 @@ bool SubmitTagSelection(int selected_index)
              save_result.metadata_path.empty() ? "<none>" : save_result.metadata_path.c_str(),
              save_result.error_code.empty() ? "<none>" : save_result.error_code.c_str());
 
-    const bool should_transcribe = save_result.clip_saved && gemini_service::GetSnapshot().runtime.ready;
+    const bool should_transcribe = save_result.clip_saved && llm_service::GetSnapshot().runtime.ready;
     ESP_LOGI(kTag,
-             "Transcription decision: clip_saved=%d gemini_ready=%d should_transcribe=%d",
+             "Transcription decision: clip_saved=%d provider_ready=%d should_transcribe=%d",
              save_result.clip_saved ? 1 : 0,
-             gemini_service::GetSnapshot().runtime.ready ? 1 : 0,
+             llm_service::GetSnapshot().runtime.ready ? 1 : 0,
              should_transcribe ? 1 : 0);
 
     {

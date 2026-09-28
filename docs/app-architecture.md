@@ -65,8 +65,9 @@ onboarding, and a set of feature pages plus overlays) built on:
 - A `timezone_service` component that owns timezone settings, SNTP sync,
   system-time updates, PCF85063 RTC writeback, and backend HTTP routes for time
   settings/runtime state.
-- A `gemini_service` component that owns Gemini API key settings precedence,
-  backend HTTP routes, and Gemini authentication readiness state.
+- A `llm_service` component that owns the AI provider choice (Muse or Gemini),
+  per-provider API key precedence, backend HTTP routes, and authentication
+  readiness state.
 - A `recording_service` component that owns voice-input recording state,
   pre-roll buffering, PSRAM-backed clips, input-level tracking, and WAV export
   to MicroSD.
@@ -77,8 +78,8 @@ onboarding, and a set of feature pages plus overlays) built on:
   (listing, metadata, follow-up flags) surfaced by the Notes/Todos/Follow-up
   pages and the sticky-note overlay.
 - A `transcription_service` and a `summary_service` component that own the
-  Gemini-backed transcription and summary flows respectively (these live in
-  their own components, not inside `gemini_service`).
+  provider-backed transcription and summary flows respectively (these live in
+  their own components, not inside `llm_service`).
 - A ported mono SSD1677 e-paper panel driver. On this board the panel owns a
   dedicated SPI3 bus, so there is no shared-bus serialization to do — the
   Sticky's `shared_bus_service` has no counterpart here.
@@ -169,7 +170,7 @@ components/
   epaper_panel/
   epaper_ui/
   feedback_service/
-  gemini_service/
+  llm_service/
   i2c_device/
   imu_service/
   page_navigation/
@@ -196,7 +197,7 @@ docs/
   app-architecture.md
   asset-generation.md
   auto-sleep.md
-  gemini-service.md
+  llm-service.md
   waveshare-epaper-hardware-spec.md
 scripts/
   generate_epaper_assets_common.py
@@ -381,7 +382,7 @@ Its job is to compose product state into UI-facing data contracts that
 
 The current app-runtime helpers under `main/` are:
 
-- `status_bar_runtime`: compose Wi-Fi, Gemini, battery, sleep, and shutdown
+- `status_bar_runtime`: compose Wi-Fi, AI provider, battery, sleep, and shutdown
   state into `epaper_ui::StatusBarState`
 - `footer_runtime`: project footer layout and shared page focus into
   `epaper_ui::GlobalFooterState` (Settings/WiFi/Time/Folder/Sticky/Home + Mic)
@@ -954,7 +955,7 @@ sources of Sticky-era complexity that simply do not apply here.
 - `waveshare_board::EnsureSensorI2cBus(...)` — the one shared I2C master bus
 
 Audio runs full duplex at a single 16 kHz clock for both capture and playback,
-chosen to match the recording and Gemini pipeline so no resampling is needed
+chosen to match the recording and transcription pipeline so no resampling is needed
 anywhere in the path. Output volume is set to `WAVESHARE_AUDIO_OUTPUT_VOLUME`
 (full scale) before output is enabled — the NS4150B into a small MX1.25 speaker
 has no headroom to give away, and the codec's own default is well below what is
@@ -1046,7 +1047,7 @@ amp), so the codec is full duplex.
 Current scope:
 
 - configure I2S0 for full-duplex 16 kHz mono 16-bit PCM, matching the recording
-  and Gemini pipeline so nothing has to resample
+  and transcription pipeline so nothing has to resample
 - own the NS4150B power-amp enable pin alongside codec output enable
 - expose `OutputData(...)` for playback and the capture side for recording
 - expose output volume control

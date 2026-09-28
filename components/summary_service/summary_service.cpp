@@ -18,7 +18,7 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "followup_task_config.h"
-#include "gemini_service.h"
+#include "llm_service.h"
 #include "recording_archive_service.h"
 #include "storage_service.h"
 
@@ -101,14 +101,14 @@ size_t EstimateTokenCount(const std::string& text)
 
 size_t CountPromptTokens(const std::string& prompt)
 {
-    const gemini_service::TokenCountResult result = gemini_service::CountTokens(prompt);
+    const llm_service::TokenCountResult result = llm_service::CountTokens(prompt);
     return result.success ? static_cast<size_t>(result.total_tokens) : EstimateTokenCount(prompt);
 }
 
 bool GeneratePromptTextResult(const std::string& prompt, std::string* text_out,
                               std::string* error_code_out, std::string* error_message_out)
 {
-    const gemini_service::TextResult result = gemini_service::GenerateText(prompt);
+    const llm_service::TextResult result = llm_service::GenerateText(prompt);
     const std::string normalized = TrimCopy(result.text);
     if (!result.success || normalized.empty()) {
         if (error_code_out != nullptr) {
@@ -116,7 +116,7 @@ bool GeneratePromptTextResult(const std::string& prompt, std::string* text_out,
         }
         if (error_message_out != nullptr) {
             *error_message_out =
-                result.error_message.empty() ? "Gemini summary request failed" : result.error_message;
+                result.error_message.empty() ? "Summary request failed" : result.error_message;
         }
         return false;
     }
@@ -799,18 +799,18 @@ GenerationResult GenerateSummary(SummaryKind kind)
 
     ESP_LOGI(kTag, "Generating %s summary", SummaryKindName(kind));
 
-    const gemini_service::Snapshot gemini_snapshot = gemini_service::GetSnapshot();
-    if (!gemini_snapshot.runtime.ready) {
-        result.error_code = "gemini_not_ready";
-        result.error_message = "Gemini is not connected";
-        ESP_LOGW(kTag, "Summary aborted: Gemini not connected");
+    const llm_service::Snapshot llm_snapshot = llm_service::GetSnapshot();
+    if (!llm_snapshot.runtime.ready) {
+        result.error_code = "provider_not_ready";
+        result.error_message = llm_service::GetProviderDisplayName() + " is not connected";
+        ESP_LOGW(kTag, "Summary aborted: AI provider not connected");
         return result;
     }
-    if (gemini_service::GetEffectiveApiKey().empty() ||
-        gemini_service::GetEffectiveModelName().empty()) {
-        result.error_code = "gemini_not_configured";
-        result.error_message = "Gemini is not configured";
-        ESP_LOGW(kTag, "Summary aborted: Gemini not configured");
+    if (llm_service::GetEffectiveApiKey().empty() ||
+        llm_service::GetEffectiveModelName().empty()) {
+        result.error_code = "provider_not_configured";
+        result.error_message = llm_service::GetProviderDisplayName() + " is not configured";
+        ESP_LOGW(kTag, "Summary aborted: AI provider not configured");
         return result;
     }
 

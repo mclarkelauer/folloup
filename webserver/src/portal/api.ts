@@ -4,8 +4,7 @@ import type {
   BootstrapResponse,
   DisplayStatusResponse,
   EffectsStatusResponse,
-  GeminiModuleResponse,
-  OpenAiModuleResponse,
+  LlmModuleResponse,
   PortalResponse,
   PowerRuntimeStatus,
   SleepStatusResponse,
@@ -67,10 +66,8 @@ export const fetchEffectsJson = (path: string, init?: RequestInit) =>
   fetchApiJson<EffectsStatusResponse>(path, init);
 export const fetchTalkingClockModuleJson = (path: string, init?: RequestInit) =>
   fetchApiJson<TalkingClockModuleResponse>(path, init);
-export const fetchGeminiModuleJson = (path: string, init?: RequestInit) =>
-  fetchApiJson<GeminiModuleResponse>(path, init);
-export const fetchOpenAiModuleJson = (path: string, init?: RequestInit) =>
-  fetchApiJson<OpenAiModuleResponse>(path, init);
+export const fetchLlmModuleJson = (path: string, init?: RequestInit) =>
+  fetchApiJson<LlmModuleResponse>(path, init);
 export const fetchXiaozhiModuleJson = (path: string, init?: RequestInit) =>
   fetchApiJson<XiaozhiModuleResponse>(path, init);
 export const fetchTimezoneListJson = (path: string, init?: RequestInit) =>

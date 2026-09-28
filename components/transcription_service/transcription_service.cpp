@@ -9,7 +9,7 @@
 #include "followup_task_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "gemini_service.h"
+#include "llm_service.h"
 
 namespace transcription_service {
 namespace {
@@ -36,7 +36,7 @@ Snapshot BuildSnapshotLocked()
 {
     Snapshot snapshot = {};
     snapshot.initialized = s_initialized;
-    snapshot.provider_ready = gemini_service::GetSnapshot().runtime.ready;
+    snapshot.provider_ready = llm_service::GetSnapshot().runtime.ready;
     snapshot.request_in_flight = s_request_in_flight;
     snapshot.last_http_status = s_last_http_status;
     snapshot.last_status_message = s_last_status_message;
@@ -60,7 +60,7 @@ void NotifyLocked()
 }
 
 // Runs the (blocking) Gemini audio transcription and publishes the result. The Gemini HTTP now
-// lives in gemini_service::Transcribe; this service owns the async lifecycle + snapshot/events.
+// lives in llm_service::Transcribe; this service owns the async lifecycle + snapshot/events.
 void WorkerTask(void* raw_context)
 {
     std::unique_ptr<TaskContext> context(static_cast<TaskContext*>(raw_context));
@@ -77,7 +77,7 @@ void WorkerTask(void* raw_context)
         return;
     }
 
-    const gemini_service::TranscriptionResult result = gemini_service::Transcribe(*context->clip);
+    const llm_service::TranscriptionResult result = llm_service::Transcribe(*context->clip);
 
     {
         std::lock_guard<std::mutex> lock(s_mutex);
@@ -89,7 +89,7 @@ void WorkerTask(void* raw_context)
             s_last_error_message.clear();
             s_last_transcript = result.transcript;
             ESP_LOGI(kTag,
-                     "Gemini transcription succeeded: chars=%u wav_bytes=%u clip_ms=%u "
+                     "Transcription succeeded: chars=%u wav_bytes=%u clip_ms=%u "
                      "upload_chunks=%u upload_elapsed_ms=%llu total_elapsed_ms=%llu",
                      static_cast<unsigned>(s_last_transcript.size()),
                      static_cast<unsigned>(result.wav_bytes),
@@ -102,7 +102,7 @@ void WorkerTask(void* raw_context)
             s_last_error_code = result.error_code;
             s_last_error_message = result.error_message;
             s_last_transcript.clear();
-            ESP_LOGW(kTag, "Gemini transcription failed: http=%d code=%s message=%s",
+            ESP_LOGW(kTag, "Transcription failed: http=%d code=%s message=%s",
                      result.http_status, s_last_error_code.c_str(), s_last_error_message.c_str());
         }
         NotifyLocked();
@@ -123,9 +123,9 @@ esp_err_t Init()
     s_initialized = true;
     s_request_in_flight = false;
     s_last_http_status = 0;
-    s_last_status_message = gemini_service::GetSnapshot().runtime.ready
-                                ? "Gemini ready for transcription"
-                                : "Gemini transcription unavailable";
+    s_last_status_message = llm_service::GetSnapshot().runtime.ready
+                                ? llm_service::GetProviderDisplayName() + " ready for transcription"
+                                : llm_service::GetProviderDisplayName() + " transcription unavailable";
     s_last_error_code.clear();
     s_last_error_message.clear();
     s_last_transcript.clear();
@@ -151,8 +151,8 @@ bool BeginTranscription(recording_service::RecordedClipPtr clip)
         return false;
     }
 
-    const gemini_service::Snapshot gemini_snapshot = gemini_service::GetSnapshot();
-    const std::string api_key = gemini_service::GetEffectiveApiKey();
+    const llm_service::Snapshot llm_snapshot = llm_service::GetSnapshot();
+    const std::string api_key = llm_service::GetEffectiveApiKey();
 
     {
         std::lock_guard<std::mutex> lock(s_mutex);
@@ -163,14 +163,14 @@ bool BeginTranscription(recording_service::RecordedClipPtr clip)
             NotifyLocked();
             return false;
         }
-        if (!gemini_snapshot.runtime.ready || api_key.empty()) {
+        if (!llm_snapshot.runtime.ready || api_key.empty()) {
             s_last_http_status = 0;
             s_last_status_message = "Transcription unavailable";
-            s_last_error_code = gemini_snapshot.settings.configured ? "provider_not_ready"
+            s_last_error_code = llm_snapshot.settings.configured ? "provider_not_ready"
                                                                     : "not_configured";
-            s_last_error_message = gemini_snapshot.settings.configured
-                                       ? "Gemini is not ready yet"
-                                       : "No Gemini API key configured";
+            s_last_error_message = llm_snapshot.settings.configured
+                                       ? llm_service::GetProviderDisplayName() + " is not ready yet"
+                                       : "No " + llm_service::GetProviderDisplayName() + " API key configured";
             s_last_transcript.clear();
             NotifyLocked();
             return false;
@@ -221,7 +221,7 @@ bool BeginTranscription(recording_service::RecordedClipPtr clip)
         return false;
     }
 
-    ESP_LOGI(kTag, "Starting Gemini transcription: samples=%u",
+    ESP_LOGI(kTag, "Starting transcription: samples=%u",
              static_cast<unsigned>(task_context->clip->sample_count()));
     return true;
 }

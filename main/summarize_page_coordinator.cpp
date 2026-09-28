@@ -7,7 +7,7 @@ namespace {
 using page_navigation::NavigationItemRole;
 
 constexpr int kScrollStepPercent = 10;
-constexpr const char* kConnectToGeminiMessage = "Connect to Gemini for summaries";
+constexpr const char* kConnectToGeminiMessage = "Connect an AI provider for summaries";
 constexpr const char* kEmptyStateMessage = "Summarize your thoughts";
 
 }  // namespace

@@ -65,25 +65,34 @@
           </ui-button>
         </ui-bottom-sheet>
 
-        <ui-card id="geminiCard" title="Gemini API Key">
+        <ui-card id="llmCard" title="AI Provider">
+            <ui-select
+              id="llmProviderSelect"
+              label="Provider"
+              aria-label="AI provider"
+            >
+              <option value="muse">Muse (Meta Model API)</option>
+              <option value="gemini">Gemini (Google AI Studio)</option>
+            </ui-select>
+
             <ui-input
-              id="geminiApiKeyInput"
-              label="Gemini API Key"
-              placeholder="Enter Gemini API key"
+              id="llmApiKeyInput"
+              label="API Key"
+              placeholder="Enter the provider's API key"
               autocomplete="off"
               inputmode="text"
             ></ui-input>
 
             <ui-button
               slot="footer"
-              id="geminiClearBtn"
+              id="llmClearBtn"
               variant="secondary"
             >
               Clear
             </ui-button>
             <ui-button
               slot="footer"
-              id="geminiSaveBtn"
+              id="llmSaveBtn"
               variant="primary"
             >
               Save

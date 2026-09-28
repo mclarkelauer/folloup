@@ -52,13 +52,44 @@ menu "Folloup Settings"
             one step every interval, so it changes over time without being
             tied to the calendar.
 
+    config FOLLOWUP_LLM_PROVIDER
+        string "Default AI provider (muse or gemini)"
+        default "muse"
+        help
+            Which provider handles transcription and summaries until one is
+            chosen from the setup portal. "muse" uses Meta's Model API (Muse
+            Spark for text, Muse Voice Transcribe for speech); "gemini" uses
+            Google's Generative Language API. The portal choice is stored in
+            NVS and takes precedence over this default.
+
+    config FOLLOWUP_MUSE_API_KEY
+        string "Built-in Muse (Meta Model API) key"
+        default ""
+        help
+            Optional built-in Meta Model API key used for testing. A runtime-saved
+            key stored through the setup portal takes precedence when present.
+
+    config FOLLOWUP_MUSE_TEXT_MODEL
+        string "Muse text model"
+        default "muse-spark-1.3"
+        help
+            Chat-completions model used for summaries on the Muse provider.
+            Transcription always uses muse-voice-transcribe-1.0.
+
     config FOLLOWUP_GEMINI_API_KEY
         string "Built-in Gemini API key"
         default ""
         help
             Optional built-in Gemini API key used for testing. A runtime-saved
-            Gemini API key stored through the backend portal takes precedence
+            Gemini API key stored through the setup portal takes precedence
             when present.
+
+    config FOLLOWUP_GEMINI_MODEL
+        string "Gemini model resource name"
+        default "models/gemini-2.5-flash-lite"
+        help
+            Generative Language API model used for both summaries and
+            transcription on the Gemini provider.
 
     config FOLLOWUP_AUTO_SLEEP_DISPLAY_SLEEP_TIMEOUT_SECONDS
         int "Display sleep timeout"

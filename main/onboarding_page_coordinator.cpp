@@ -32,8 +32,8 @@ constexpr std::array<Slide, 6> kSlides = {{
      "The device sleeps when inactive. Hold keys 1 and 2 to shut it down; press and hold key 1 to "
      "turn it on.",
      EmbeddedImageId::kSlide4},
-    {"Summaries with Gemini",
-     "Connect Gemini and let Folloup transcribe your recordings and summarize your day for you.",
+    {"Summaries with AI",
+     "Connect Muse or Gemini and let Folloup transcribe your recordings and summarize your day for you.",
      EmbeddedImageId::kSlide5},
     {"Notes, Todos & Follow-ups",
      "Recordings are grouped by day. Browse them as Notes, mark tasks as Todos, and pin anything as "

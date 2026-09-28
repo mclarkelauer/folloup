@@ -2,9 +2,10 @@ import type { PortalDom } from './dom';
 import type { StatusType, ValidatableField } from './types';
 
 interface PortalEventControllers {
-  geminiController: {
-    clearGeminiKey: () => Promise<void>;
-    saveGeminiKey: () => Promise<void>;
+  llmController: {
+    clearKey: () => Promise<void>;
+    handleProviderChange: () => Promise<void>;
+    saveKey: () => Promise<void>;
   };
   timeController: {
     clearTimezoneLocation: () => Promise<void>;
@@ -80,14 +81,17 @@ export function bindPortalEvents(deps: BindPortalEventsDeps) {
     controllers.wifiController.handleListboxKeyDown(event);
   });
 
-  // --- Gemini API key ---
-  dom.geminiSaveBtn.addEventListener('click', () => {
-    runWithButtonFocus(dom.geminiSaveBtn, () => controllers.geminiController.saveGeminiKey());
+  // --- AI provider + API key ---
+  dom.llmProviderSelect.addEventListener('change', () => {
+    void controllers.llmController.handleProviderChange();
   });
-  dom.geminiClearBtn.addEventListener('click', () => {
-    runWithButtonFocus(dom.geminiClearBtn, () => controllers.geminiController.clearGeminiKey());
+  dom.llmSaveBtn.addEventListener('click', () => {
+    runWithButtonFocus(dom.llmSaveBtn, () => controllers.llmController.saveKey());
   });
-  dom.geminiApiKeyInput.addEventListener('input', helpers.updateUi);
+  dom.llmClearBtn.addEventListener('click', () => {
+    runWithButtonFocus(dom.llmClearBtn, () => controllers.llmController.clearKey());
+  });
+  dom.llmApiKeyInput.addEventListener('input', helpers.updateUi);
 
   // --- Time / timezone ---
   dom.timezoneLocationSaveBtn.addEventListener('click', () => {
