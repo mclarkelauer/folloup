@@ -93,8 +93,42 @@ Followup is driven entirely by the three physical controls: a rocker, the BOOT b
 
 Recording is exclusive to BOOT, so no other control can start or stop a capture by accident. The 6-second PWR hold bypasses the firmware entirely and always cuts power.
 
+## Build and Flash
+
+Followup is an [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/) project targeting `esp32s3`. Waveshare recommends ESP-IDF v5.5.0 or newer for this board; this fork is built and verified with **ESP-IDF v5.5.4**. Managed components (`espressif/button`, `esp_codec_dev`, `esp_audio_codec`, `esp_tinyusb`) are fetched automatically by the IDF component manager on the first build.
+
+### With a native ESP-IDF install
+
+```bash
+. ~/esp/v5.5.4/esp-idf/export.sh   # or wherever your IDF is installed
+idf.py set-target esp32s3            # first time only
+idf.py build
+idf.py -p /dev/ttyACM0 flash monitor
+```
+
+### With Docker (no local toolchain)
+
+```bash
+docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
+  -v "$PWD":/project:z -w /project espressif/idf:v5.5.4 idf.py build
+```
+
+Flash the resulting `build/` output from the host with `esptool`, or run the same container with `--device /dev/ttyACM0` and `idf.py -p /dev/ttyACM0 flash monitor`.
+
+### Configuration
+
+`sdkconfig.defaults` carries the board settings (16 MB QIO flash, 8 MB octal PSRAM, OTA partition table from `partitions.csv`, TinyUSB mass storage). `sdkconfig` itself is untracked because `idf.py menuconfig` writes secrets such as the Gemini API key into it. Wi-Fi credentials, the Gemini key, and the timezone are normally set at runtime from the setup portal (see `webserver/README.md`), which the device serves while in access-point mode.
+
+To enter download mode manually, hold **BOOT** while pressing **RESET**, or simply let `idf.py flash` use the USB-Serial-JTAG auto-reset.
+
 ## Product Value Summary
 
 The value of Followup is a quiet, always-visible place to catch your thoughts and keep the important ones in front of you. Instead of losing an idea to a forgotten note app or burying a task in a notification stream, you speak it in the moment, let Gemini turn it into clean text and a summary, and keep everything private on your SD card.
 
 Ideas get a vibe check so you only carry forward what still matters. Tasks and notes become follow-ups so you stay on track. And the ones you care about most sit on the ePaper as stickies — a steady, low-interruption reminder of what's next.
+
+## License and Attribution
+
+Followup is licensed under the [GNU GPLv3](LICENSE).
+
+This repository is a fork of [ALXV's folloup-sticky](https://github.com/alxv2016/folloup-sticky). The upstream `main` branch targets SeeedStudio's reTerminal Sticky, and its `folloup-waveshare` branch ports the app to the Waveshare ESP32-S3-ePaper-3.97. This fork takes that Waveshare port as its primary target: `main` here tracks the Waveshare board, and the original reTerminal Sticky code is preserved on the `sticky` branch. Thank you to ALXV for the original design and implementation.

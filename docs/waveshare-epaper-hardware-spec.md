@@ -22,7 +22,7 @@
 | Display bus | SPI (`SPI3_HOST`), e-paper control signals |
 | Audio codec | ES8311 over I2S + shared I2C |
 | Audio amplifier | NS4150B (enabled via `GPIO39`) |
-| Board PCM format | `24 kHz`, mono, 16-bit |
+| Board PCM format | `16 kHz`, mono, 16-bit |
 | Storage expansion | MicroSD via `SDMMC 4-bit` mode |
 | Power management | AXP2101 PMIC (wiki labels it `TG28`) |
 | RTC | PCF85063 |
@@ -117,7 +117,7 @@ All I2C peripherals share the same master bus (`GPIO41` SDA / `GPIO42` SCL).
 
 The AXP2101 PMIC owns system power, battery charging, and USB VBUS state. The
 firmware profile is configured in the `Pmic` constructor in
-[`components/board_epaper/epaper_board.cc`](/Users/tieuvong/Development/followup/components/board_epaper/epaper_board.cc).
+[`components/board/waveshare_board.cpp`](../components/board/waveshare_board.cpp).
 
 ### 5.1 Power Rails
 
@@ -168,7 +168,7 @@ SD-card mode.
 
 The firmware uses **light sleep** (not deep sleep) for inactivity, driven by the
 device sleep service. The wake path is implemented in
-[`main/service_runtime/device_sleep_runtime.cc`](/Users/tieuvong/Development/followup/main/service_runtime/device_sleep_runtime.cc).
+[`main/device_sleep_runtime.cpp`](../main/device_sleep_runtime.cpp).
 
 Entry sequence before `esp_light_sleep_start()`:
 
@@ -224,12 +224,12 @@ signals on this board and must keep a Boot-safe default level at reset:
 
 | Item | Notes |
 |---|---|
-| Source of truth | Pin values come from `epaper_board_config.h`; do not treat `docs/hardware-reference.md` audio pins as current — that file lists an older I2S mapping (`WS`/`DOUT`/`DIN` on GP15/GP16/GP21). The config header uses `WS=GPIO47`, `DOUT=GPIO48`, `DIN=GPIO21`, `MCLK=GPIO13`, `BCLK=GPIO14`. |
+| Source of truth | Pin values come from `components/board/include/waveshare_board_config.h`: `WS=GPIO47`, `DOUT=GPIO48`, `DIN=GPIO21`, `MCLK=GPIO13`, `BCLK=GPIO14`, `PA=GPIO39`. These match the vendor BSP in `waveshareteam/ESP32-S3-ePaper-3.97` (`ESP-IDF/03_Music/components/es8311_bsp/es8311_bsp.h`). |
 | Shared I2C bus | Codec, PMIC, RTC, and IMU share one master bus on `GPIO41`/`GPIO42`. |
 | IMU address | QMI8658 auto-detects: try `0x6B` first, fall back to `0x6A`. |
 | Strapping pins | `GPIO0/3/45/46` are strapping pins reused as functional signals — see [Strapping Pins](#7-strapping-pins). |
 | SD mode | `SDMMC 4-bit` (not SPI); all four data lines connected (`D0`–`D3`). |
-| Audio sample rate | Codec runs at `24 kHz` mono/16-bit; Gemini uplink path downsamples mic audio to `16 kHz` in software. |
+| Audio sample rate | Codec runs full-duplex at `16 kHz` mono/16-bit (`WAVESHARE_AUDIO_SAMPLE_RATE_HZ`), matching the recording/Gemini pipeline so no resampling is needed. |
 | PMIC naming | The Waveshare wiki lists the PMIC as `TG28`; the firmware driver targets an AXP2101-compatible PMIC at I2C `0x34` and that is what actually works. Treat `0x34` / AXP2101 as authoritative. |
 | SHTC3 sensor | Present on the board (shared I2C, `0x70`) but the current firmware ships no SHTC3 driver — add one before relying on temp/humidity. |
 | Connectors | Battery, speaker, and RTC-backup-battery use MX1.25 headers (per vendor wiki); USB-C is used for flashing/logging and native USB-OTG. |

@@ -27,7 +27,7 @@ namespace {
 constexpr const char* kTag = "StorageService";
 constexpr const char* kMountPoint = "/sdcard";
 constexpr const char* kProbePath = "/sdcard/SDPROBE.TXT";
-constexpr const char* kProbeText = "reTerminal Sticky SD probe\n";
+constexpr const char* kProbeText = "Followup SD probe\n";
 constexpr const char* kVolumeLabel = "FOLLOUP";
 constexpr size_t kAllocationUnitSize = 16 * 1024;
 constexpr size_t kMaxFiles = 5;
