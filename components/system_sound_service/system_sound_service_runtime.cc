@@ -1,3 +1,7 @@
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/idf_additions.h"
+#include "esp_heap_caps.h"
 #include "system_sound_service_internal.h"
 
 #include <esp_audio_dec_default.h>
@@ -22,12 +26,13 @@ void SystemSoundServiceImpl::Initialize(AudioCodec* codec) {
     if (!task_started_) {
         esp_audio_dec_register_default();
         esp_audio_simple_dec_register_default();
-        xTaskCreatePinnedToCore(
+        // PSRAM stack: this task decodes cues and feeds I2S; it never writes flash.
+        xTaskCreatePinnedToCoreWithCaps(
             [](void* arg) {
                 static_cast<SystemSoundServiceImpl*>(arg)->PlaybackTask();
             },
             "system_sound_service", 8192, this, kPlaybackTaskPriority, &task_handle_,
-            kPlaybackTaskCore);
+            kPlaybackTaskCore, MALLOC_CAP_SPIRAM);
         task_started_ = task_handle_ != nullptr;
     }
 

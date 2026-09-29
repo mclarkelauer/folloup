@@ -12,6 +12,8 @@
 #include "followup_task_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/idf_additions.h"
+#include "esp_heap_caps.h"
 #include "llm_backend.h"
 #include "llm_http.h"
 #include "nvs.h"
@@ -416,13 +418,13 @@ void AuthenticationTask(void* arg)
         result.error_code = "task_context_missing";
         result.error_message = "Authentication task context missing";
         CompleteAuthentication(0, Provider::kMuse, result);
-        vTaskDelete(nullptr);
+        vTaskDeleteWithCaps(nullptr);
         return;
     }
     const backend::AuthResult result =
         backend::BackendFor(context->provider).Authenticate(context->api_key);
     CompleteAuthentication(context->generation, context->provider, result);
-    vTaskDelete(nullptr);
+    vTaskDeleteWithCaps(nullptr);
 }
 
 void MaybeBeginAuthentication()
@@ -1035,10 +1037,11 @@ bool BeginAuthentication()
         context->api_key = std::move(api_key);
         context->generation = auth_generation;
         TaskHandle_t task_handle = nullptr;
-        const BaseType_t created = xTaskCreatePinnedToCore(
+        // PSRAM stack: this task never writes flash, so its stack can live outside internal RAM.
+        const BaseType_t created = xTaskCreatePinnedToCoreWithCaps(
             AuthenticationTask, "llm_auth", kAuthTaskStackWords, context.get(),
             followup_task_config::kPriorityGemini, &task_handle,
-            followup_task_config::kSystemCore);
+            followup_task_config::kSystemCore, MALLOC_CAP_SPIRAM);
         if (created != pdPASS || task_handle == nullptr) {
             task_failed = true;
             failure_code = "task_start_failed";

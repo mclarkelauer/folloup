@@ -32,6 +32,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
+#include "freertos/idf_additions.h"
+#include "esp_heap_caps.h"
 #include "project_assets.h"
 #include "waveshare_board_config.h"
 
@@ -1179,14 +1181,11 @@ esp_err_t StartDisplayTask()
         return ESP_OK;
     }
 
-    const BaseType_t created = xTaskCreatePinnedToCore(
-        DisplayTask,
-        "display_service",
-        kDisplayTaskStackWords,
-        nullptr,
-        followup_task_config::kPriorityDisplay,
-        &s_display_task,
-        followup_task_config::kAppCore);
+    // PSRAM stack: this task never writes flash, so its stack can live outside internal RAM.
+    const BaseType_t created = xTaskCreatePinnedToCoreWithCaps(
+        DisplayTask, "display_service", kDisplayTaskStackWords, nullptr,
+        followup_task_config::kPriorityDisplay, &s_display_task, followup_task_config::kAppCore,
+        MALLOC_CAP_SPIRAM);
     if (created != pdPASS) {
         s_display_task = nullptr;
         return ESP_ERR_NO_MEM;

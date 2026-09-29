@@ -9,6 +9,8 @@
 #include "followup_task_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/idf_additions.h"
+#include "esp_heap_caps.h"
 #include "llm_service.h"
 
 namespace transcription_service {
@@ -73,7 +75,7 @@ void WorkerTask(void* raw_context)
         s_last_error_message = "No recorded audio available";
         s_last_transcript.clear();
         NotifyLocked();
-        vTaskDelete(nullptr);
+        vTaskDeleteWithCaps(nullptr);
         return;
     }
 
@@ -108,7 +110,7 @@ void WorkerTask(void* raw_context)
         NotifyLocked();
     }
 
-    vTaskDelete(nullptr);
+    vTaskDeleteWithCaps(nullptr);
 }
 
 }  // namespace
@@ -207,9 +209,11 @@ bool BeginTranscription(recording_service::RecordedClipPtr clip)
     task_context->clip = std::move(clip);
 
     TaskHandle_t task = nullptr;
-    const BaseType_t created = xTaskCreatePinnedToCore(
+    // PSRAM stack: this task never writes flash, so its stack can live outside internal RAM.
+    const BaseType_t created = xTaskCreatePinnedToCoreWithCaps(
         WorkerTask, "transcription", kWorkerTaskStackWords, task_context,
-        followup_task_config::kPriorityGemini, &task, followup_task_config::kSystemCore);
+        followup_task_config::kPriorityGemini, &task, followup_task_config::kSystemCore,
+        MALLOC_CAP_SPIRAM);
     if (created != pdPASS) {
         delete task_context;
         std::lock_guard<std::mutex> lock(s_mutex);

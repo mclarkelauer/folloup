@@ -10,6 +10,8 @@
 #include "followup_task_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/idf_additions.h"
+#include "esp_heap_caps.h"
 #include "overlay_runtime.h"
 
 namespace ui_refresh_runtime {
@@ -310,13 +312,11 @@ esp_err_t Init()
         return ESP_OK;
     }
 
-    const BaseType_t created = xTaskCreatePinnedToCore(UiRefreshTask,
-                                                       "ui_refresh",
-                                                       kUiRefreshTaskStackWords,
-                                                       nullptr,
-                                                       followup_task_config::kPriorityUiRefresh,
-                                                       &s_task,
-                                                       followup_task_config::kAppCore);
+    // PSRAM stack: this task never writes flash, so its stack can live outside internal RAM.
+    const BaseType_t created = xTaskCreatePinnedToCoreWithCaps(
+        UiRefreshTask, "ui_refresh", kUiRefreshTaskStackWords, nullptr,
+        followup_task_config::kPriorityUiRefresh, &s_task, followup_task_config::kAppCore,
+        MALLOC_CAP_SPIRAM);
     if (created != pdPASS) {
         s_task = nullptr;
         return ESP_ERR_NO_MEM;

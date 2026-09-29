@@ -17,6 +17,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
+#include "freertos/idf_additions.h"
+#include "esp_heap_caps.h"
 #include "followup_task_config.h"
 #include "llm_service.h"
 #include "recording_archive_service.h"
@@ -978,9 +980,11 @@ esp_err_t Init()
                 ESP_LOGE(kTag, "Failed to create summary queue");
                 return ESP_ERR_NO_MEM;
             }
-            if (xTaskCreatePinnedToCore(WorkerTask, "summary_service", kWorkerTaskStackWords, nullptr,
-                                        followup_task_config::kPriorityGemini, nullptr,
-                                        followup_task_config::kSystemCore) != pdPASS) {
+            // PSRAM stack: this task never writes flash, so its stack can live outside internal RAM.
+            if (xTaskCreatePinnedToCoreWithCaps(WorkerTask, "summary_service", kWorkerTaskStackWords,
+                                                nullptr, followup_task_config::kPriorityGemini,
+                                                nullptr, followup_task_config::kSystemCore,
+                                                MALLOC_CAP_SPIRAM) != pdPASS) {
                 ESP_LOGE(kTag, "Failed to start summary worker");
                 vQueueDelete(s_queue);
                 s_queue = nullptr;

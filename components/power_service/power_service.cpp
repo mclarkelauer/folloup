@@ -8,6 +8,8 @@
 #include "followup_task_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/idf_additions.h"
+#include "esp_heap_caps.h"
 #include "pcf85063.h"
 #include "waveshare_board.h"
 
@@ -299,14 +301,11 @@ esp_err_t Init()
     // background poller so later UI refreshes never do synchronous sensor I2C.
     PollSensorsOnce();
     if (s_sensor_task == nullptr) {
-        const BaseType_t created = xTaskCreatePinnedToCore(
-            SensorPollTask,
-            "sensor_poll",
-            kSensorPollTaskStackWords,
-            nullptr,
-            followup_task_config::kPrioritySensorPoll,
-            &s_sensor_task,
-            followup_task_config::kSystemCore);
+        // PSRAM stack: this task never writes flash, so its stack can live outside internal RAM.
+        const BaseType_t created = xTaskCreatePinnedToCoreWithCaps(
+            SensorPollTask, "sensor_poll", kSensorPollTaskStackWords, nullptr,
+            followup_task_config::kPrioritySensorPoll, &s_sensor_task,
+            followup_task_config::kSystemCore, MALLOC_CAP_SPIRAM);
         if (created != pdPASS) {
             s_sensor_task = nullptr;
             ESP_LOGW(kTag, "Sensor poll task create failed; telemetry will be stale");

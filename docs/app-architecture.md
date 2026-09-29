@@ -20,6 +20,33 @@ significant differences:
 | IMU | — | QMI8658 6-axis |
 | Display bus | SPI2 shared with SD | Dedicated SPI3, no bus sharing |
 
+## Internal RAM Budget
+
+The ESP32-S3 has about 270 KB of internal SRAM available to the heap on this board, and
+several things can only live there: the two e-paper framebuffers (96 KB, see the note in
+`components/epaper_panel/epaper_panel.cpp` about PSRAM reads during flash writes), every task
+stack created with plain `xTaskCreate`, and the Wi-Fi driver's DMA buffers. A fresh device boots
+straight into access-point setup mode, which adds the captive portal, DHCP server, and DNS task
+on top, and that combination exhausted internal RAM at startup (`ESP_ERR_NO_MEM` creating the
+input dispatcher task). The following keep it inside budget:
+
+- `sdkconfig.defaults` builds at `-Os` (IRAM and DRAM share the same SRAM, so code size in IRAM
+  costs heap), sends Wi-Fi / lwIP buffers and mbedTLS sessions to PSRAM first
+  (`CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP`, `CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC`), keeps only
+  mallocs under 4 KB internal, and disables IPv6, WPA-Enterprise, and Wi-Fi's IRAM speed-ups.
+- Tasks that never write flash are created with `xTaskCreatePinnedToCoreWithCaps(...,
+  MALLOC_CAP_SPIRAM)` so their stacks live in PSRAM: the display task, the UI refresh task, the
+  power sensor poll, the system-sound playback task, the summary worker, the AI authentication
+  task, and the transcription worker. Self-deleting ones exit through `vTaskDeleteWithCaps(nullptr)`.
+- A task whose stack is in PSRAM must never trigger a flash write (NVS, OTA, partition APIs),
+  because the cache is disabled for the duration and the stack becomes unreachable. That rules
+  out the Wi-Fi transition worker (saves credentials), the timezone sync worker (persists sync
+  status), the archive refresh worker and the storage worker (both reach the archive's NVS
+  snapshot), the input dispatcher (page actions write NVS), and the sleep tasks.
+- `app_shell::Run()` logs `Heap after <step>` after every init step. Watch the
+  `InitButtonService` line: it is the low-water mark, and the main task's 8 KB comes back once
+  `app_main` returns.
+
 ## Current Scope
 
 The repository is a multi-page ESP-IDF product application (dashboard home,

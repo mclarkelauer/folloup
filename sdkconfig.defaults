@@ -6,8 +6,23 @@ CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_SPIRAM_USE_MALLOC=y
 CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
-CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=2048
-CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=98304
+# Small mallocs (< 4 KB) stay internal; 32 KB is fenced off for task stacks / DMA.
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=4096
+CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
+
+# Internal RAM is the scarce resource on this board: the two e-paper framebuffers (96 KB) must
+# stay internal for SPI DMA, every task stack is internal, and Wi-Fi in AP mode adds the captive
+# portal, DHCP server, and DNS task. Push what can live in PSRAM there: Wi-Fi / lwIP buffers and
+# TLS sessions. Wi-Fi's IRAM speed-ups are disabled because IRAM and DRAM share the same SRAM.
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
+CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
+CONFIG_ESP_WIFI_IRAM_OPT=n
+CONFIG_ESP_WIFI_RX_IRAM_OPT=n
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=6
+CONFIG_ESP_WIFI_RX_BA_WIN=6
+# No IPv6 or WPA-Enterprise on this device; both cost internal RAM at boot.
+CONFIG_LWIP_IPV6=n
+CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=n
 
 # Waveshare board: 16 MB QIO flash.
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
@@ -23,6 +38,11 @@ CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+
+# Build at -Os. IRAM and DRAM share the ESP32-S3's internal SRAM, and the -Og code footprint in
+# IRAM leaves too little internal heap: startup dies with ESP_ERR_NO_MEM creating task stacks
+# once Wi-Fi is up. -Os also keeps display renders inside the task watchdog budget.
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
 
 # Audio: ES8311 codec over the esp_codec_dev / esp_audio_codec managed components.
 CONFIG_CODEC_I2C_BACKWARD_COMPATIBLE=n

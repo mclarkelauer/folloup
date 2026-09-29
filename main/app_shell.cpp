@@ -13,6 +13,7 @@
 #include "device_sleep_runtime.h"
 #include "display_service.h"
 #include "esp_err.h"
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
@@ -1725,6 +1726,16 @@ void InitDeviceSleepRuntime()
 
 }  // namespace
 
+// Startup memory watermark. Internal RAM is tight on this board (framebuffers, task stacks, and
+// Wi-Fi all need it), so log the margin after each init step to make the next NO_MEM obvious.
+void LogHeap(const char* stage)
+{
+    ESP_LOGI(kTag, "Heap after %s: internal free=%u largest=%u, psram free=%u", stage,
+             static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
+             static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL)),
+             static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
+}
+
 void Run()
 {
     ESP_ERROR_CHECK(power_service::EnablePowerHold());
@@ -1732,13 +1743,19 @@ void Run()
     ESP_ERROR_CHECK(power_service::Init());
     power_service::LogDebugStatus();
     InitFeedbackService();
+    LogHeap("InitFeedbackService");
     // On this board the SD card needs to enter and stay in SPI mode before
     // the shared-bus display path is brought up.
     InitStorageService();
+    LogHeap("InitStorageService");
     InitDisplayService();
+    LogHeap("InitDisplayService");
     InitUiRefreshRuntime();
+    LogHeap("InitUiRefreshRuntime");
     InitLockScreenRuntime();
+    LogHeap("InitLockScreenRuntime");
     InitOverlayRuntime();
+    LogHeap("InitOverlayRuntime");
     input_runtime_setup::Configure({
         .inputs_enabled = &InputsEnabled,
         .inputs_enabled_context = nullptr,
@@ -1747,18 +1764,30 @@ void Run()
     });
     PlayFeedback(feedback_service::FeedbackEvent::kStartup);
     InitImuService();
+    LogHeap("InitImuService");
     InitDeviceSleepRuntime();
+    LogHeap("InitDeviceSleepRuntime");
     InitTimezoneService();
+    LogHeap("InitTimezoneService");
     InitRecordingArchiveService();
+    LogHeap("InitRecordingArchiveService");
     InitLlmService();
+    LogHeap("InitLlmService");
     InitWifiService();
+    LogHeap("InitWifiService");
     InitRecordingService();
+    LogHeap("InitRecordingService");
     InitTranscriptionService();
+    LogHeap("InitTranscriptionService");
     InitRecordingSessionService();
+    LogHeap("InitRecordingSessionService");
     InitFooterRuntime();
+    LogHeap("InitFooterRuntime");
     StartShutdownTask();
     InitPowerKeyRuntime();
+    LogHeap("InitPowerKeyRuntime");
     InitButtonService();
+    LogHeap("InitButtonService");
     const esp_err_t status_bar_err = status_bar_runtime::UpdateDisplayState();
     if (status_bar_err != ESP_OK && status_bar_err != ESP_ERR_INVALID_STATE) {
         ESP_LOGW(kTag, "Initial status bar update failed: %s", esp_err_to_name(status_bar_err));
